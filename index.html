@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Визуализация Атома</title>
+<title>Визуализация Атома 2D</title>
 <style>
   body {
     margin: 0;
@@ -12,16 +12,15 @@
     color: #eee;
     display: flex;
     justify-content: center;
-    align-items: flex-start;
-    height: 100vh;
     padding: 40px 20px;
   }
   .container {
     background: #2e2e2e;
     border-radius: 16px;
-    width: 420px;
+    width: 320px;
     padding: 20px;
     box-sizing: border-box;
+    user-select: none;
   }
   h1 {
     margin: 0 0 6px 0;
@@ -64,7 +63,7 @@
   .nucleus {
     position: absolute;
     top: 50%; left: 50%;
-    width: 60px; height: 60px;
+    width: 50px; height: 50px;
     background: radial-gradient(circle at center, #f44336 0%, #b71c1c 80%);
     border-radius: 50%;
     box-shadow: 0 0 15px #f44336cc;
@@ -73,17 +72,17 @@
   }
   .orbit {
     position: absolute;
-    border: 1.5px solid rgba(255,255,255,0.3);
+    border: 1.3px solid rgba(255,255,255,0.25);
     border-radius: 50%;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
   }
   .electron {
     position: absolute;
-    width: 14px; height: 14px;
+    width: 12px; height: 12px;
     background: #4caf50;
     border-radius: 50%;
-    box-shadow: 0 0 10px #4caf50cc;
+    box-shadow: 0 0 8px #4caf50cc;
   }
   .info {
     background: #1a1a1a;
@@ -91,7 +90,7 @@
     padding: 14px 18px;
     font-size: 13px;
     line-height: 1.4;
-    max-height: 380px;
+    max-height: 300px;
     overflow-y: auto;
     white-space: pre-line;
     user-select: text;
@@ -123,9 +122,8 @@
   const input = document.getElementById('elementInput');
   const infoBox = document.getElementById('elementInfo');
 
-  // Максимум электронов на каждом уровне
   const shellsCapacity = [2,8,18,32,18,8,2];
-  const baseRadius = 40;
+  const baseRadius = 35;
 
   function clearAtom() {
     container.querySelectorAll('.orbit').forEach(e => e.remove());
@@ -152,19 +150,17 @@
     clearAtom();
     let remaining = electrons;
     for (let i=0; i<shellsCapacity.length && remaining>0; i++) {
-      const electronsOnShell = Math.min(remaining, shellsCapacity[i]);
-      remaining -= electronsOnShell;
-      const radius = baseRadius + i*25;
+      const count = Math.min(remaining, shellsCapacity[i]);
+      remaining -= count;
+      const radius = baseRadius + i*28;
 
-      // Орбита
       const orbit = createOrbit(radius);
       container.appendChild(orbit);
 
-      // Электроны равномерно вокруг орбиты
-      for(let n=0; n<electronsOnShell; n++) {
-        const angle = (2*Math.PI / electronsOnShell) * n - Math.PI/2; // смещение чтобы 1-й сверху
-        const x = radius + radius * Math.cos(angle) - 7;
-        const y = radius + radius * Math.sin(angle) - 7;
+      for(let n=0; n<count; n++) {
+        const angle = (2 * Math.PI / count) * n - Math.PI / 2;
+        const x = radius + radius * Math.cos(angle) - 6;
+        const y = radius + radius * Math.sin(angle) - 6;
         const electron = createElectron(x, y);
         container.appendChild(electron);
       }
@@ -202,14 +198,13 @@
     drawAtom(e.electrons);
   }
 
-  // Загрузка элементов из файла
   fetch('elements.json')
     .then(r => r.json())
     .then(data => {
       elements = data;
       input.addEventListener('input', () => {
-        let val = +input.value;
-        if(!val || val < 1 || val > 112) {
+        const val = +input.value;
+        if (!val || val < 1 || val > 112) {
           infoBox.textContent = 'Введите число от 1 до 112';
           drawAtom(0);
           return;
