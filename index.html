@@ -64,47 +64,34 @@
     user-select: none;
   }
   .atom-visualization {
-    margin: 0 auto 20px auto;
+    position: relative;
     width: 280px;
     height: 280px;
-    position: relative;
-    perspective: 800px;
+    margin: 20px auto 40px;
   }
   .nucleus {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 60px;
-    height: 60px;
+    top: 50%; left: 50%;
+    width: 60px; height: 60px;
     background: radial-gradient(circle at center, #f44336 0%, #b71c1c 80%);
     border-radius: 50%;
-    box-shadow: 0 0 12px #f44336aa;
+    box-shadow: 0 0 15px #f44336aa;
     transform: translate(-50%, -50%);
     z-index: 10;
   }
-  .electron-orbit {
+  .orbit {
     position: absolute;
-    border: 1px solid rgba(255,255,255,0.3);
+    border: 1.5px solid rgba(255,255,255,0.3);
     border-radius: 50%;
-    top: 50%;
-    left: 50%;
-    transform-style: preserve-3d;
-    animation: spin 20s linear infinite;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
   }
   .electron {
     position: absolute;
-    width: 14px;
-    height: 14px;
+    width: 14px; height: 14px;
     background: #4caf50;
     border-radius: 50%;
-    box-shadow: 0 0 8px #4caf50cc;
-    top: 50%;
-    left: 50%;
-    transform-origin: 50% -110px;
-  }
-  @keyframes spin {
-    from { transform: translate(-50%, -50%) rotateY(0deg) rotateX(15deg); }
-    to { transform: translate(-50%, -50%) rotateY(360deg) rotateX(15deg); }
+    box-shadow: 0 0 10px #4caf50cc;
   }
   .info {
     background: #1a1a1a;
@@ -134,7 +121,7 @@
   <div class="author">Арсений 9л</div>
   <input id="elementInput" type="number" min="1" max="112" placeholder="Введите номер элемента (1 - 112)" />
   <div class="placeholder-text">От скольки до скольки элементов (1 - 112)</div>
-  
+
   <div class="atom-visualization" aria-label="Атом">
     <div class="nucleus"></div>
   </div>
@@ -143,37 +130,49 @@
 </div>
 
 <script>
-  let elements = {};
-
   const container = document.querySelector('.atom-visualization');
   const input = document.getElementById('elementInput');
   const infoBox = document.getElementById('elementInfo');
 
+  const shellsCapacity = [2, 8, 18, 32, 18, 8, 2];
+  const baseRadius = 40;
+
+  function clearAtom() {
+    container.querySelectorAll('.orbit').forEach(e => e.remove());
+  }
+
+  function createOrbit(radius) {
+    const orbit = document.createElement('div');
+    orbit.classList.add('orbit');
+    orbit.style.width = `${radius * 2}px`;
+    orbit.style.height = `${radius * 2}px`;
+    return orbit;
+  }
+
+  function createElectron(x, y) {
+    const electron = document.createElement('div');
+    electron.classList.add('electron');
+    electron.style.left = `${x}px`;
+    electron.style.top = `${y}px`;
+    return electron;
+  }
+
   function drawAtom(electrons) {
-    container.querySelectorAll('.electron-orbit').forEach(o => o.remove());
+    clearAtom();
+    let remaining = electrons;
+    for (let i = 0; i < shellsCapacity.length && remaining > 0; i++) {
+      const electronsOnShell = Math.min(remaining, shellsCapacity[i]);
+      remaining -= electronsOnShell;
+      const radius = baseRadius + i * 25;
 
-    const shellsCapacity = [2, 8, 18, 32, 18, 8, 2];
-    let electronsLeft = electrons;
-    let radiusBase = 70;
-
-    for (let shell = 0; shell < shellsCapacity.length && electronsLeft > 0; shell++) {
-      let shellElectrons = Math.min(electronsLeft, shellsCapacity[shell]);
-      electronsLeft -= shellElectrons;
-
-      const orbit = document.createElement('div');
-      orbit.classList.add('electron-orbit');
-      orbit.style.width = `${radiusBase + shell * 25}px`;
-      orbit.style.height = `${radiusBase + shell * 25}px`;
-      orbit.style.marginLeft = `-${(radiusBase + shell * 25)/2}px`;
-      orbit.style.marginTop = `-${(radiusBase + shell * 25)/2}px`;
-      orbit.style.animationDuration = `${20 - shell*2}s`;
+      const orbit = createOrbit(radius);
       container.appendChild(orbit);
 
-      for(let i = 0; i < shellElectrons; i++) {
-        const electron = document.createElement('div');
-        electron.classList.add('electron');
-        let angle = (360 / shellElectrons) * i;
-        electron.style.transform = `rotate(${angle}deg) translateY(-${(radiusBase + shell * 25)/2 - 10}px)`;
+      for (let n = 0; n < electronsOnShell; n++) {
+        const angle = (2 * Math.PI / electronsOnShell) * n;
+        const x = radius + radius * Math.cos(angle) - 7;
+        const y = radius + radius * Math.sin(angle) - 7;
+        const electron = createElectron(x, y);
         orbit.appendChild(electron);
       }
     }
@@ -182,6 +181,8 @@
   function formatSection(title, content) {
     return `<div class="section"><strong>${title}</strong>${content}</div>`;
   }
+
+  let elements = {};
 
   function showElementInfo(num) {
     if (!elements[num]) {
@@ -194,7 +195,7 @@
     html += `<strong>${e.name} (${e.symbol})</strong>`;
     html += formatSection('Атомный номер (Z): ', e.atomicNumber);
     html += formatSection('Атомная масса (A): ', e.atomicMass);
-    html += formatSection('Период и группа: ', `Период ${e.period}, Группа ${e.group}`);
+    html += formatSection('Период и группа: ', `Период ${e.period}, Группа ${e.group || '—'}`);
     html += formatSection('Электронная конфигурация:', e.electronConfiguration);
     html += formatSection('Физические свойства:', e.physicalProperties);
     html += formatSection('Химические свойства:', e.chemicalProperties);
@@ -209,7 +210,7 @@
   }
 
   fetch('elements.json')
-    .then(r => r.json())
+    .then(response => response.json())
     .then(data => {
       elements = data;
       input.addEventListener('input', () => {
