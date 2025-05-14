@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Визуализация Атома 2D</title>
+<style>
+  body {
+    margin: 0;
+    background: #121212;
+    font-family: Arial, sans-serif;
+    color: #eee;
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+  .container {
+    background: #2e2e2e;
+    border-radius: 16px;
+    width: 320px;
+    padding: 20px;
+    box-sizing: border-box;
+    user-select: none;
+  }
+  h1 {
+    margin: 0 0 6px 0;
+    text-align: center;
+  }
+  .author {
+    text-align: center;
+    font-size: 14px;
+    color: rgba(255 255 255 / 0.3);
+    margin-bottom: 20px;
+  }
+  input[type=number] {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: none;
+    font-size: 16px;
+    background: #1e1e1e;
+    color: #ddd;
+    margin-bottom: 6px;
+    outline-offset: 2px;
+    outline-color: #666;
+  }
+  input[type=number]:focus {
+    outline-color: #4caf50;
+    background: #272727;
+  }
+  .hint {
+    font-size: 13px;
+    color: #999;
+    margin-bottom: 18px;
+    user-select: none;
+  }
+  .atom-visualization {
+    position: relative;
+    width: 280px;
+    height: 280px;
+    margin: 0 auto 30px auto;
+  }
+  .nucleus {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 50px; height: 50px;
+    background: radial-gradient(circle at center, #f44336 0%, #b71c1c 80%);
+    border-radius: 50%;
+    box-shadow: 0 0 15px #f44336cc;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+  }
+  .orbit {
+    position: absolute;
+    border: 1.3px solid rgba(255,255,255,0.25);
+    border-radius: 50%;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .electron {
+    position: absolute;
+    width: 12px; height: 12px;
+    background: #4caf50;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #4caf50cc;
+  }
+  .info {
+    background: #1a1a1a;
+    border-radius: 12px;
+    padding: 14px 18px;
+    font-size: 13px;
+    line-height: 1.4;
+    max-height: 300px;
+    overflow-y: auto;
+    white-space: pre-line;
+    user-select: text;
+  }
+  .info strong {
+    font-size: 18px;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .info .section {
+    margin-bottom: 10px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Визуализация Атома</h1>
+  <div class="author">Арсений 9л</div>
+  <input id="elementInput" type="number" min="1" max="112" placeholder="Введите номер элемента (1 - 112)" />
+  <div class="hint">От скольки до скольки элементов (1 - 112)</div>
+  <div class="atom-visualization" aria-label="Атом">
+    <div class="nucleus"></div>
+  </div>
+  <div class="info" id="elementInfo">Введите номер элемента, чтобы увидеть информацию.</div>
+</div>
+
+<script>
+  const container = document.querySelector('.atom-visualization');
+  const input = document.getElementById('elementInput');
+  const infoBox = document.getElementById('elementInfo');
+
+  const shellsCapacity = [2,8,18,32,18,8,2];
+  const baseRadius = 35;
+
+  function clearAtom() {
+    container.querySelectorAll('.orbit').forEach(e => e.remove());
+    container.querySelectorAll('.electron').forEach(e => e.remove());
+  }
+
+  function createOrbit(radius) {
+    const orbit = document.createElement('div');
+    orbit.classList.add('orbit');
+    orbit.style.width = `${radius * 2}px`;
+    orbit.style.height = `${radius * 2}px`;
+    return orbit;
+  }
+
+  function createElectron(x, y) {
+    const electron = document.createElement('div');
+    electron.classList.add('electron');
+    electron.style.left = `${x}px`;
+    electron.style.top = `${y}px`;
+    return electron;
+  }
+
+  function drawAtom(electrons) {
+    clearAtom();
+    let remaining = electrons;
+    for (let i=0; i<shellsCapacity.length && remaining>0; i++) {
+      const count = Math.min(remaining, shellsCapacity[i]);
+      remaining -= count;
+      const radius = baseRadius + i*28;
+
+      const orbit = createOrbit(radius);
+      container.appendChild(orbit);
+
+      for(let n=0; n<count; n++) {
+        const angle = (2 * Math.PI / count) * n - Math.PI / 2;
+        const x = radius + radius * Math.cos(angle) - 6;
+        const y = radius + radius * Math.sin(angle) - 6;
+        const electron = createElectron(x, y);
+        container.appendChild(electron);
+      }
+    }
+  }
+
+  function formatSection(title, content) {
+    return `<div class="section"><strong>${title}</strong>${content}</div>`;
+  }
+
+  let elements = {};
+
+  function showElementInfo(num) {
+    if(!elements[num]) {
+      infoBox.textContent = `Элемент с номером ${num} не найден.`;
+      drawAtom(0);
+      return;
+    }
+    const e = elements[num];
+    let html = '';
+    html += `<strong>${e.name} (${e.symbol})</strong>`;
+    html += formatSection('Атомный номер (Z): ', e.atomicNumber);
+    html += formatSection('Атомная масса (A): ', e.atomicMass);
+    html += formatSection('Период и группа: ', `Период ${e.period}, Группа ${e.group || '—'}`);
+    html += formatSection('Электронная конфигурация:', e.electronConfiguration);
+    html += formatSection('Физические свойства:', e.physicalProperties);
+    html += formatSection('Химические свойства:', e.chemicalProperties);
+    html += formatSection('Изотопы:', e.isotopes);
+    html += formatSection('Энергия ионизации (эВ):', e.ionizationEnergy);
+    html += formatSection('Электроотрицательность:', e.electronegativity);
+    html += formatSection('Степени окисления:', e.oxidationStates);
+    html += formatSection('Радиус атома (пм):', e.atomicRadius);
+
+    infoBox.innerHTML = html;
+    drawAtom(e.electrons);
+  }
+
+  fetch('elements.json')
+    .then(r => r.json())
+    .then(data => {
+      elements = data;
+      input.addEventListener('input', () => {
+        const val = +input.value;
+        if (!val || val < 1 || val > 112) {
+          infoBox.textContent = 'Введите число от 1 до 112';
+          drawAtom(0);
+          return;
+        }
+        showElementInfo(val);
+      });
+    })
+    .catch(() => {
+      infoBox.textContent = 'Ошибка загрузки данных элементов.';
+    });
+
+  drawAtom(0);
+</script>
+</body>
+</html>
